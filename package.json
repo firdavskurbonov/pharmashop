@@ -10,7 +10,8 @@
     "dev": "npx nuxi dev",
     "generate": "npx nuxi generate",
     "preview": "npx nuxi preview",
-    "postinstall": "npx nuxi prepare"
+    "postinstall": "npx nuxi prepare",
+    "deploy": "nuxt generate && gh-pages -d .output/public"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.11.0",
@@ -26,6 +27,7 @@
     "@nuxtjs/tailwindcss": "^6.13.2",
     "@types/axios": "^0.9.36",
     "@types/node": "^22.14.1",
+    "gh-pages": "^6.3.0",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.10"
   }

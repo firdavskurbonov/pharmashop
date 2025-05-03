@@ -13,6 +13,7 @@ export default defineNuxtConfig({
     '@/assets/css/main.css',
   ],
   app: {
+    baseURL: '/',
     head: {
       title: 'Аптека',
       meta: [
@@ -28,7 +29,6 @@ export default defineNuxtConfig({
   imports: {
     dirs: ['stores']
   },
-
   typescript: {
     strict: true,
     typeCheck: true
@@ -41,19 +41,5 @@ export default defineNuxtConfig({
         file: '~/pages/orderconfirmation.vue',
       });
     },
-  },
-  // vite: {
-  //   // optimizeDeps: {
-  //   //   include: ['vue']
-  //   // },
-  //   resolve: {
-  //     alias: {
-  //       vue: './node_modules/@vue/compat'
-  //     },
-  //     dedupe: ['vue']
-  //   }
-  // }
-
- 
-  
+  },  
 })
