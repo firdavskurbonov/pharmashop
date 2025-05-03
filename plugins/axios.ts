@@ -45,5 +45,6 @@ export default defineNuxtPlugin((nuxtApp: NuxtApp) => {
       return Promise.reject(error);
     }
   );
+  
   nuxtApp.provide('axios', axiosInstance);
 });

@@ -117,6 +117,14 @@ export const useProductStore = defineStore('products', {
             const { $axios } = useNuxtApp();
             const axiosInstance = $axios as import('axios').AxiosInstance;
             const response = await axiosInstance.get(url, { timeout: 30000 });
+
+            // Log the response for debugging
+            console.log('API Response:', {
+              status: response.status,
+              success: response.data.Success,
+              message: response.data.Message || 'No message provided',
+              dataLength: response.data.Data ? response.data.Data.length : 0
+            });
             
             // Handle the new response format
             const responseData = response.data;
@@ -135,21 +143,48 @@ export const useProductStore = defineStore('products', {
               };
             } else {
               // If the API indicates failure but returns a 200 response
-              throw new Error(responseData.Message || 'Failed to fetch products');
+              throw new Error(responseData.Message || 'API returned success: false');
             }
             return;
-          } catch (error) {
+          } catch (error: any) {
+            // Enhanced error logging
+            if (error.response) {
+              // The request was made and the server responded with a status code
+              // that falls out of the range of 2xx
+              console.error('Server responded with error:', {
+                status: error.response.status,
+                data: error.response.data,
+                headers: error.response.headers
+              });
+            } else if (error.request) {
+              // The request was made but no response was received
+              console.error('No response received:', error.request);
+            } else {
+              // Something happened in setting up the request that triggered an Error
+              console.error('Error setting up request:', error.message);
+            }
             // If this is our last attempt or it's not a network error, throw it
             if (attempt === MAX_RETRIES - 1 || !(error as any).response) {
               throw error;
             }
-            console.warn(`Attempt ${attempt + 1} failed. Retrying...`);
+            // Wait a bit before retrying (implement exponential backoff)
+            const backoffTime = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+            console.warn(`Attempt ${attempt + 1} failed. Retrying in ${backoffTime}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
           }
         }
       } catch (err) {
         const error = err as Error;
         this.error = error.message || 'Failed to fetch products';
         console.error('Error fetching products:', error);
+
+        // You might want to add user-friendly error messages based on error types
+        if (error.message.includes('timeout')) {
+          this.error = 'Request timed out. Please try again later.';
+        } else if (error.message.includes('Network Error')) {
+          this.error = 'Network error. Please check your internet connection.';
+        }
+
       } finally {
         this.loading = false;
       }
