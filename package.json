@@ -1,0 +1,32 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "npx vue-tsc -p tsconfig.json",
+    "cache": "npm cache clean --force",
+    "check": "npx nuxi typecheck",
+    "build": "npx nuxi build",
+    "dev": "npx nuxi dev",
+    "generate": "npx nuxi generate",
+    "preview": "npx nuxi preview",
+    "postinstall": "npx nuxi prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.11.0",
+    "axios": "^1.9.0",
+    "nuxt": "latest",
+    "pinia": "^3.0.2",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^2.4.0",
+    "@nuxt/types": "^2.18.1",
+    "@nuxtjs/tailwindcss": "^6.13.2",
+    "@types/axios": "^0.9.36",
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3",
+    "vue-tsc": "^2.2.10"
+  }
+}
