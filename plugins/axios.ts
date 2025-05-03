@@ -6,7 +6,7 @@ import type { NuxtApp } from 'nuxt/app';
 
 export default defineNuxtPlugin((nuxtApp: NuxtApp) => {
   const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || '', 
+    baseURL: (import.meta as any).env.VITE_API_BASE_URL || 'https://04c3-37-98-159-221.ngrok-free.app', 
   });
 
   // Request interceptor
