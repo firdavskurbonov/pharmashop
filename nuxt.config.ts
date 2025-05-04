@@ -13,7 +13,6 @@ export default defineNuxtConfig({
     '@/assets/css/main.css',
   ],
   app: {
-    baseURL: '/',
     head: {
       title: 'Аптека',
       meta: [
