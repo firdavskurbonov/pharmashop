@@ -126,10 +126,10 @@ export const useProductStore = defineStore('products', {
             const config = { 
               timeout: 30000,
               // Uncomment and use if needed - add auth headers if required
-              // headers: {
-              //   'Authorization': 'Bearer ' + this.authToken,
-              //   'Content-Type': 'application/json'
-              // }
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              }
             };
             
             console.log(`Attempt ${attempt + 1} - Sending request to ${url} with config:`, config);
