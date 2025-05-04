@@ -90,73 +90,39 @@ export const useProductStore = defineStore('products', {
   },
   
   actions: {
+
     async fetchProducts(searchQuery?: string, pageNumber?: number, pageSize?: number): Promise<void> {
       this.loading = true;
       this.error = null;
       
       // Update filters if parameters are provided
-      if (searchQuery !== undefined) {
-        this.filters.searchQuery = searchQuery;
-      }
-      
-      if (pageNumber !== undefined) {
-        this.filters.pageNumber = pageNumber;
-      }
-      
-      if (pageSize !== undefined) {
-        this.filters.pageSize = pageSize;
-      }
+      if (searchQuery !== undefined) this.filters.searchQuery = searchQuery;
+      if (pageNumber !== undefined) this.filters.pageNumber = pageNumber;
+      if (pageSize !== undefined) this.filters.pageSize = pageSize;
       
       const url = this.buildApiUrl();
-      console.log('Fetching products from URL:', url); // Log the URL for debugging
-      
-      // Debug log the filters
-      console.log('Filters being used:', JSON.stringify(this.filters, null, 2));
+      const { $axios } = useNuxtApp();
+      const axiosInstance = $axios as import('axios').AxiosInstance;
+      const config = { 
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      };
       
       const MAX_RETRIES = 3;
       
       try {
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
           try {
-            // Use the axios instance created in plugins/axios.ts
-            const { $axios } = useNuxtApp();
-            const axiosInstance = $axios as import('axios').AxiosInstance;
-            
-            // Debug the request configuration
-            const config = { 
-              timeout: 30000,
-              // Uncomment and use if needed - add auth headers if required
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              }
-            };
-            
-            console.log(`Attempt ${attempt + 1} - Sending request to ${url} with config:`, config);
-            
-            // Await the response from the API call
             const response = await axiosInstance.get(url, config);
-
-            console.log('Request URL:', url);
-            console.log('Request Config:', config);
-            
-            // Log the full response for debugging
-            console.log('Full API Response:', response);
-            console.log('API Response Data:', response.data);
-            
-            // Handle the response format
             const responseData = response.data;
             
-            // Explicitly check for Success flag
-            if (responseData && responseData.Success === true) {
-              if (!responseData.Data) {
-                console.warn('API returned Success: true but with empty Data');
-                this.products = [];
-              } else {
-                this.products = Array.isArray(responseData.Data) ? responseData.Data : [responseData.Data];
-              }
+            if (responseData?.Success === true) {
+              this.products = Array.isArray(responseData.Data) ? responseData.Data : 
+                             (responseData.Data ? [responseData.Data] : []);
               
-              // Add pagination data to the store
               this.pagination = {
                 totalRecords: responseData.TotalRecords || 0,
                 pageSize: responseData.PageSize || 5,
@@ -166,114 +132,233 @@ export const useProductStore = defineStore('products', {
                 previousPageUrl: responseData.PreviousPageUrl || null
               };
               
-              console.log('Successfully fetched products:', this.products.length);
-              return; // Exit if successful
+              return;
             } else {
-              // If the API indicates failure but returns a 200 response
-              const errorDetails = {
-                success: responseData?.Success,
-                message: responseData?.Message || 'No error message provided',
-                code: responseData?.ErrorCode || 'UNKNOWN',
-                data: responseData?.Data || null
-              };
-              
-              console.error('API returned Success: false with details:', errorDetails);
-              
-              // Check if there's a specific error condition we can handle
-              if (responseData?.ErrorCode === 'INVALID_PARAMETERS') {
-                throw new Error(`Invalid parameters: ${responseData.Message}`);
-              } else if (responseData?.ErrorCode === 'AUTHORIZATION_REQUIRED') {
-                throw new Error('Authorization required to access this resource');
-              } else {
-                throw new Error(responseData?.Message || 'API returned success: false');
-              }
+              throw new Error(responseData?.Message || 'API returned success: false');
             }
           } catch (error: any) {
-            // Enhanced error handling with complete error object
-            console.error('API Request Error:', error);
-            console.error('Error type:', error.constructor.name);
-            console.error('Error message:', error.message);
-            console.error('Stack trace:', error.stack);
-            
-            // Enhanced error logging
-            if (error.response) {
-              // The request was made and the server responded with a status code outside 2xx
-              console.error('Server responded with error:', {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                data: error.response.data,
-                headers: error.response.headers
-              });
-            } else if (error.request) {
-              // The request was made but no response was received
-              console.error('No response received. Request details:', {
-                method: error.request.method,
-                url: error.request.url,
-                responseURL: error.request.responseURL,
-                status: error.request.status,
-                statusText: error.request.statusText
-              });
-            } else {
-              // Something happened in setting up the request
-              console.error('Error setting up request:', error.message);
-            }
-            
-            // Special handling for ngrok tunnels which might have connection issues
-            if (url.includes('ngrok') && error.message.includes('Network Error')) {
-              console.warn('ngrok tunnel might be expired or unstable');
-            }
-            
-            // If this is our last attempt or it's not a retriable error, throw it
             const isRetriableError = 
-              (error.code === 'ECONNABORTED') || // Timeout
-              (error.message.includes('timeout')) ||
-              (error.message.includes('Network Error')) ||
+              error.code === 'ECONNABORTED' || 
+              error.message.includes('timeout') ||
+              error.message.includes('Network Error') ||
               (error.response && (
-                error.response.status === 408 || // Request Timeout
-                error.response.status === 429 || // Too Many Requests
-                error.response.status >= 500));  // Server errors
-               
-            if (attempt === MAX_RETRIES - 1 || !isRetriableError) {
-              throw error;
-            }
+                error.response.status === 408 || 
+                error.response.status === 429 || 
+                error.response.status >= 500
+              ));
             
-            // Wait before retrying (implement exponential backoff)
-            const backoffTime = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
-            console.warn(`Attempt ${attempt + 1} failed. Retrying in ${backoffTime}ms...`);
+            if (attempt === MAX_RETRIES - 1 || !isRetriableError) throw error;
+            
+            const backoffTime = Math.pow(2, attempt) * 500;
             await new Promise(resolve => setTimeout(resolve, backoffTime));
           }
         }
       } catch (err) {
         const error = err as Error;
-        
-        // Default error message
         let userFriendlyMessage = 'Failed to fetch products';
         
-        // User-friendly error messages based on error types
         if (error.message.includes('timeout')) {
           userFriendlyMessage = 'Request timed out. Please try again later.';
         } else if (error.message.includes('Network Error')) {
           userFriendlyMessage = 'Network error. Please check your internet connection.';
-          // Additional specific check for ngrok
-          if ((err as any).config?.url?.includes('ngrok')) {
-            userFriendlyMessage += ' Your ngrok tunnel might be expired or unstable.';
-          }
         } else if ((err as any).response?.status === 401) {
           userFriendlyMessage = 'You are not authorized to access this data.';
         } else if ((err as any).response?.status === 403) {
           userFriendlyMessage = 'You do not have permission to access this data.';
         } else if ((err as any).response?.status === 404) {
           userFriendlyMessage = 'The requested resource was not found.';
-        } else if (error.message.includes('API returned success: false')) {
-          userFriendlyMessage = 'The server could not process your request. Please try again later.';
         }
         
         this.error = userFriendlyMessage;
-        console.error('Error fetching products:', error);
       } finally {
-        this.loading = false; // Ensure loading is set to false in all cases
+        this.loading = false;
       }
     },
+
+    // async fetchProducts(searchQuery?: string, pageNumber?: number, pageSize?: number): Promise<void> {
+    //   this.loading = true;
+    //   this.error = null;
+      
+    //   // Update filters if parameters are provided
+    //   if (searchQuery !== undefined) {
+    //     this.filters.searchQuery = searchQuery;
+    //   }
+      
+    //   if (pageNumber !== undefined) {
+    //     this.filters.pageNumber = pageNumber;
+    //   }
+      
+    //   if (pageSize !== undefined) {
+    //     this.filters.pageSize = pageSize;
+    //   }
+      
+    //   const url = this.buildApiUrl();
+    //   console.log('Fetching products from URL:', url); // Log the URL for debugging
+      
+    //   // Debug log the filters
+    //   console.log('Filters being used:', JSON.stringify(this.filters, null, 2));
+      
+    //   const MAX_RETRIES = 3;
+      
+    //   try {
+    //     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    //       try {
+    //         // Use the axios instance created in plugins/axios.ts
+    //         const { $axios } = useNuxtApp();
+    //         const axiosInstance = $axios as import('axios').AxiosInstance;
+            
+    //         // Debug the request configuration
+    //         const config = { 
+    //           timeout: 30000,
+    //           // Uncomment and use if needed - add auth headers if required
+    //           headers: {
+    //             'Content-Type': 'application/json',
+    //             'Accept': 'application/json'
+    //           }
+    //         };
+            
+    //         console.log(`Attempt ${attempt + 1} - Sending request to ${url} with config:`, config);
+            
+    //         // Await the response from the API call
+    //         const response = await axiosInstance.get(url, config);
+
+    //         console.log('Request URL:', url);
+    //         console.log('Request Config:', config);
+            
+    //         // Log the full response for debugging
+    //         console.log('Full API Response:', response);
+    //         console.log('API Response Data:', response.data);
+            
+    //         // Handle the response format
+    //         const responseData = response.data;
+            
+    //         // Explicitly check for Success flag
+    //         if (responseData && responseData.Success === true) {
+    //           if (!responseData.Data) {
+    //             console.warn('API returned Success: true but with empty Data');
+    //             this.products = [];
+    //           } else {
+    //             this.products = Array.isArray(responseData.Data) ? responseData.Data : [responseData.Data];
+    //           }
+              
+    //           // Add pagination data to the store
+    //           this.pagination = {
+    //             totalRecords: responseData.TotalRecords || 0,
+    //             pageSize: responseData.PageSize || 5,
+    //             currentPage: responseData.CurrentPage || 1,
+    //             totalPages: responseData.TotalPages || 1,
+    //             nextPageUrl: responseData.NextPageUrl || null,
+    //             previousPageUrl: responseData.PreviousPageUrl || null
+    //           };
+              
+    //           console.log('Successfully fetched products:', this.products.length);
+    //           return; // Exit if successful
+    //         } else {
+    //           // If the API indicates failure but returns a 200 response
+    //           const errorDetails = {
+    //             success: responseData?.Success,
+    //             message: responseData?.Message || 'No error message provided',
+    //             code: responseData?.ErrorCode || 'UNKNOWN',
+    //             data: responseData?.Data || null
+    //           };
+              
+    //           console.error('API returned Success: false with details:', errorDetails);
+              
+    //           // Check if there's a specific error condition we can handle
+    //           if (responseData?.ErrorCode === 'INVALID_PARAMETERS') {
+    //             throw new Error(`Invalid parameters: ${responseData.Message}`);
+    //           } else if (responseData?.ErrorCode === 'AUTHORIZATION_REQUIRED') {
+    //             throw new Error('Authorization required to access this resource');
+    //           } else {
+    //             throw new Error(responseData?.Message || 'API returned success: false');
+    //           }
+    //         }
+    //       } catch (error: any) {
+    //         // Enhanced error handling with complete error object
+    //         console.error('API Request Error:', error);
+    //         console.error('Error type:', error.constructor.name);
+    //         console.error('Error message:', error.message);
+    //         console.error('Stack trace:', error.stack);
+            
+    //         // Enhanced error logging
+    //         if (error.response) {
+    //           // The request was made and the server responded with a status code outside 2xx
+    //           console.error('Server responded with error:', {
+    //             status: error.response.status,
+    //             statusText: error.response.statusText,
+    //             data: error.response.data,
+    //             headers: error.response.headers
+    //           });
+    //         } else if (error.request) {
+    //           // The request was made but no response was received
+    //           console.error('No response received. Request details:', {
+    //             method: error.request.method,
+    //             url: error.request.url,
+    //             responseURL: error.request.responseURL,
+    //             status: error.request.status,
+    //             statusText: error.request.statusText
+    //           });
+    //         } else {
+    //           // Something happened in setting up the request
+    //           console.error('Error setting up request:', error.message);
+    //         }
+            
+    //         // Special handling for ngrok tunnels which might have connection issues
+    //         if (url.includes('ngrok') && error.message.includes('Network Error')) {
+    //           console.warn('ngrok tunnel might be expired or unstable');
+    //         }
+            
+    //         // If this is our last attempt or it's not a retriable error, throw it
+    //         const isRetriableError = 
+    //           (error.code === 'ECONNABORTED') || // Timeout
+    //           (error.message.includes('timeout')) ||
+    //           (error.message.includes('Network Error')) ||
+    //           (error.response && (
+    //             error.response.status === 408 || // Request Timeout
+    //             error.response.status === 429 || // Too Many Requests
+    //             error.response.status >= 500));  // Server errors
+               
+    //         if (attempt === MAX_RETRIES - 1 || !isRetriableError) {
+    //           throw error;
+    //         }
+            
+    //         // Wait before retrying (implement exponential backoff)
+    //         const backoffTime = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+    //         console.warn(`Attempt ${attempt + 1} failed. Retrying in ${backoffTime}ms...`);
+    //         await new Promise(resolve => setTimeout(resolve, backoffTime));
+    //       }
+    //     }
+    //   } catch (err) {
+    //     const error = err as Error;
+        
+    //     // Default error message
+    //     let userFriendlyMessage = 'Failed to fetch products';
+        
+    //     // User-friendly error messages based on error types
+    //     if (error.message.includes('timeout')) {
+    //       userFriendlyMessage = 'Request timed out. Please try again later.';
+    //     } else if (error.message.includes('Network Error')) {
+    //       userFriendlyMessage = 'Network error. Please check your internet connection.';
+    //       // Additional specific check for ngrok
+    //       if ((err as any).config?.url?.includes('ngrok')) {
+    //         userFriendlyMessage += ' Your ngrok tunnel might be expired or unstable.';
+    //       }
+    //     } else if ((err as any).response?.status === 401) {
+    //       userFriendlyMessage = 'You are not authorized to access this data.';
+    //     } else if ((err as any).response?.status === 403) {
+    //       userFriendlyMessage = 'You do not have permission to access this data.';
+    //     } else if ((err as any).response?.status === 404) {
+    //       userFriendlyMessage = 'The requested resource was not found.';
+    //     } else if (error.message.includes('API returned success: false')) {
+    //       userFriendlyMessage = 'The server could not process your request. Please try again later.';
+    //     }
+        
+    //     this.error = userFriendlyMessage;
+    //     console.error('Error fetching products:', error);
+    //   } finally {
+    //     this.loading = false; // Ensure loading is set to false in all cases
+    //   }
+    // },
     // async fetchProducts(searchQuery?: string, pageNumber?: number, pageSize?: number): Promise<void> {
     //   this.loading = true;
     //   this.error = null;
