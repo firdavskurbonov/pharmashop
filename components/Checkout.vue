@@ -580,8 +580,8 @@ const sendOrderToTelegram = async (orderData: OrderData) => {
 
   try {
     const response = await fetch(
-      `${domain}/api/telegram/bot${botToken}/sendMessage`,
-      //`${domain}/api/telegram/sendMessage`,
+      //`${domain}/api/telegram/bot${botToken}/sendMessage`,
+      `${domain}/api/telegram/sendMessage`,
       //`${domain}/sendmessage`,
       {
         method: "POST",
