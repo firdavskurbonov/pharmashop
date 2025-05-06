@@ -1,14 +1,14 @@
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- Cart Button -->
-    <div class="cart-button-container">
+    <div class="cart-button-container flex justify-center p-4">
       <button
         @click="openCart"
-        class="cart-button bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded flex items-center"
+        class="cart-button bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-2 rounded flex items-center"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5 mr-2"
+          class="h-5 w-5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -20,12 +20,12 @@
             d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
           />
         </svg>
-        Корзина
+        <span class="ml-2">Корзина</span>
         <span
           v-if="
             cartStore?.totalItems !== undefined && cartStore?.totalItems > 0
           "
-          class="ml-2 bg-white text-indigo-600 rounded-full px-2 py-0.5 text-xs font-bold"
+          class="ml-1 bg-white text-indigo-600 rounded-full px-1 py-0.5 text-xs font-bold"
         >
           {{ cartStore?.totalItems || 0 }}
         </span>
@@ -193,7 +193,52 @@
 
     <!-- Product Table -->
     <div v-else class="bg-white shadow-md rounded-lg overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
+      <div class="block sm:hidden p-4">
+        <h2 class="text-lg font-bold mb-4">Товары</h2>
+        <div
+          v-for="product in filteredProducts"
+          :key="product.Id"
+          class="mb-4 border-b pb-2"
+        >
+          <div class="flex justify-between items-center">
+            <div class="font-medium">{{ product.ProductName }}</div>
+            <div class="text-sm text-gray-500">
+              {{ formatPrice(product.Price) }}
+            </div>
+          </div>
+          <div class="text-sm text-gray-500">
+            Производитель: {{ product.ManufactName }}
+          </div>
+          <div class="text-sm text-gray-500">
+            Количество: {{ product.Quantity }}
+          </div>
+          <div class="text-sm text-gray-500">
+            Срок годности: {{ formatDate(product.ExpireDate) }}
+          </div>
+          <div class="flex justify-end space-x-2 mt-2">
+            <button
+              @click.stop="showProductInfo(product)"
+              class="text-indigo-600 hover:text-indigo-900"
+            >
+              Подробнее
+            </button>
+            <button
+              @click="addToCart(product)"
+              :disabled="product.Quantity === 0"
+              :class="[
+                'px-3 py-1 rounded-md text-sm',
+                product.Quantity > 0
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-gray-300 cursor-not-allowed text-gray-500',
+              ]"
+            >
+              Добавить
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <table class="min-w-full hidden sm:table divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
             <th
@@ -256,9 +301,9 @@
               </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span :class="getStockClass(product.Quantity)">
-                {{ product.Quantity }}
-              </span>
+              <span :class="getStockClass(product.Quantity)">{{
+                product.Quantity
+              }}</span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-500">
@@ -273,18 +318,7 @@
                   @click.stop="showProductInfo(product)"
                   class="text-indigo-600 hover:text-indigo-900"
                 >
-                  <svg
-                    fill="rgb(65 70 229)"
-                    width="40px"
-                    height="40px"
-                    viewBox="-1 0 19 19"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="cf-icon-svg"
-                  >
-                    <path
-                      d="M16.417 9.583A7.917 7.917 0 1 1 8.5 1.666a7.917 7.917 0 0 1 7.917 7.917zM5.85 3.309a6.833 6.833 0 1 0 2.65-.534 6.787 6.787 0 0 0-2.65.534zm2.654 1.336A1.136 1.136 0 1 1 7.37 5.78a1.136 1.136 0 0 1 1.135-1.136zm.792 9.223V8.665a.792.792 0 1 0-1.583 0v5.203a.792.792 0 0 0 1.583 0z"
-                    />
-                  </svg>
+                  Подробнее
                 </button>
                 <button
                   @click="addToCart(product)"
@@ -298,46 +332,6 @@
                 >
                   Добавить
                 </button>
-                <div class="relative" v-if="isInCart(product.Id)">
-                  <button
-                    @click="openQuantityPopover(product.Id)"
-                    class="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm"
-                  >
-                    {{ getCartQuantity(product.Id) }} в корзине
-                  </button>
-                  <!-- Quantity Popover -->
-                  <div
-                    v-if="activeQuantityPopover === product.Id"
-                    class="absolute right-0 mt-2 p-2 bg-white rounded-md shadow-lg z-10 border quantity-popover"
-                  >
-                    <div class="flex items-center">
-                      <button
-                        @click="decrementItem(product.Id)"
-                        class="bg-gray-200 px-2 py-1 rounded-l"
-                      >
-                        -
-                      </button>
-                      <span class="bg-gray-100 px-4 py-1">
-                        {{ getCartQuantity(product.Id) }}
-                      </span>
-                      <button
-                        @click="incrementItem(product.Id)"
-                        class="bg-gray-200 px-2 py-1 rounded-r"
-                        :disabled="
-                          getCartQuantity(product.Id) >= product.Quantity
-                        "
-                      >
-                        +
-                      </button>
-                    </div>
-                    <button
-                      @click="removeFromCart(product.Id)"
-                      class="mt-2 w-full text-sm text-red-500 hover:text-red-700"
-                    >
-                      Удалить из корзины
-                    </button>
-                  </div>
-                </div>
               </div>
             </td>
           </tr>
@@ -377,8 +371,6 @@
             >
               Предыдущая
             </button>
-
-            <!-- Page numbers -->
             <div class="hidden md:flex mx-2">
               <template v-for="page in pageNumbers" :key="page">
                 <button
@@ -394,7 +386,6 @@
                 </button>
               </template>
             </div>
-
             <button
               @click="goToNextPage"
               :disabled="
@@ -897,6 +888,8 @@ defineExpose({
   .cart-button {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
+    width: 40px;
+    height: 40px;
   }
 }
 .cart-button-container {
