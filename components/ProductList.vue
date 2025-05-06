@@ -20,7 +20,23 @@
             d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
           />
         </svg>
-        <span class="ml-2">Корзина</span>
+        <span class="ml-2 desktop-only">Корзина</span>
+        <span class="mobile-only">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+        </span>
         <span
           v-if="
             cartStore?.totalItems !== undefined && cartStore?.totalItems > 0
@@ -880,23 +896,37 @@ defineExpose({
 
 <style>
 @media (max-width: 768px) {
+  .desktop-only {
+    display: none;
+  }
   .cart-button-container {
-    bottom: 10px;
-    right: 10px;
+    margin-right: 10px;
+    margin-top: -20px;
   }
 
   .cart-button {
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
-    width: 40px;
+    width: 60px;
     height: 40px;
   }
 }
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none;
+  }
+  .cart-button-container {
+    margin-right: 20px;
+    margin-top: -20px;
+  }
+}
+
 .cart-button-container {
   position: fixed;
-  top: 10px; /* Distance from the bottom of the screen */
-  right: 20px; /* Distance from the right of the screen */
-  z-index: 50; /* Ensure it stays above other elements */
+  top: 10px;
+  right: 20px;
+  z-index: 50;
 }
 
 .cart-button {
