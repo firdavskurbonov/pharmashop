@@ -174,6 +174,7 @@
               <input
                 type="number"
                 v-model.number="product.selectedQuantity"
+                @input="handleQuantityInput(product, $event)"
                 @keyup.enter="addToCartWithQuantity(product)"
                 class="w-12 text-center border-none focus:outline-none py-1"
                 min="1"
@@ -309,7 +310,8 @@
                   </button>
                   <input
                     type="number"
-                    v-model.number="product.selectedQuantity"
+                    :value="product.selectedQuantity"
+                    @input="handleQuantityInput(product, $event)"
                     @keyup.enter="addToCartWithQuantity(product)"
                     class="w-12 text-center border-none focus:outline-none py-1"
                     min="1"
@@ -643,6 +645,23 @@ function decrementQuantity(product) {
   }
 }
 
+// FIXED: Handle direct quantity input changes
+function handleQuantityInput(product, event) {
+  const inputValue = parseInt(event.target.value) || 1;
+  const validQuantity = Math.min(Math.max(1, inputValue), product.Quantity);
+
+  if (!productStates[product.Id]) {
+    productStates[product.Id] = {};
+  }
+
+  productStates[product.Id].selectedQuantity = validQuantity;
+
+  // Update the input field to show the corrected value if it was invalid
+  if (inputValue !== validQuantity) {
+    event.target.value = validQuantity;
+  }
+}
+
 function addToCartWithQuantity(product) {
   // Get the selected quantity from product state
   const quantity = productStates[product.Id]?.selectedQuantity || 1;
@@ -659,35 +678,35 @@ function addToCartWithQuantity(product) {
   console.log(`Added ${validQuantity} of ${product.ProductName} to cart`);
 }
 
-function isInCart(productId) {
-  return cartStore.items.some((item) => item.id === productId);
-}
+// function isInCart(productId) {
+//   return cartStore.items.some((item) => item.id === productId);
+// }
 
-function getCartQuantity(productId) {
-  const item = cartStore.items.find((item) => item.id === productId);
-  return item ? item.quantity : 0;
-}
+// function getCartQuantity(productId) {
+//   const item = cartStore.items.find((item) => item.id === productId);
+//   return item ? item.quantity : 0;
+// }
 
-function openQuantityPopover(productId) {
-  if (activeQuantityPopover.value === productId) {
-    activeQuantityPopover.value = null;
-  } else {
-    activeQuantityPopover.value = productId;
-  }
-}
+// function openQuantityPopover(productId) {
+//   if (activeQuantityPopover.value === productId) {
+//     activeQuantityPopover.value = null;
+//   } else {
+//     activeQuantityPopover.value = productId;
+//   }
+// }
 
-function incrementItem(productId) {
-  cartStore.incrementItem(productId);
-}
+// function incrementItem(productId) {
+//   cartStore.incrementItem(productId);
+// }
 
-function decrementItem(productId) {
-  cartStore.decrementItem(productId);
-}
+// function decrementItem(productId) {
+//   cartStore.decrementItem(productId);
+// }
 
-function removeFromCart(productId) {
-  cartStore.removeItem(productId);
-  activeQuantityPopover.value = null;
-}
+// function removeFromCart(productId) {
+//   cartStore.removeItem(productId);
+//   activeQuantityPopover.value = null;
+// }
 
 // Formatters
 function formatPrice(price) {
@@ -771,33 +790,33 @@ const handleTabKey = (event) => {
   }
 };
 
-// Function to check if product has low stock (used for warnings)
-function hasLowStock(quantity) {
-  return quantity > 0 && quantity < 5;
-}
+// // Function to check if product has low stock (used for warnings)
+// function hasLowStock(quantity) {
+//   return quantity > 0 && quantity < 5;
+// }
 
-// Function to check if product is expired or expiring soon
-function isExpiringSoon(dateString) {
-  const expiryDate = new Date(dateString);
-  const today = new Date();
-  const oneMonthFromNow = new Date();
-  oneMonthFromNow.setMonth(today.getMonth() + 1);
+// // Function to check if product is expired or expiring soon
+// function isExpiringSoon(dateString) {
+//   const expiryDate = new Date(dateString);
+//   const today = new Date();
+//   const oneMonthFromNow = new Date();
+//   oneMonthFromNow.setMonth(today.getMonth() + 1);
 
-  return expiryDate <= oneMonthFromNow;
-}
+//   return expiryDate <= oneMonthFromNow;
+// }
 
-// Add warning indicators for products
-function getExpiryWarning(dateString) {
-  const expiryDate = new Date(dateString);
-  const today = new Date();
+// // Add warning indicators for products
+// function getExpiryWarning(dateString) {
+//   const expiryDate = new Date(dateString);
+//   const today = new Date();
 
-  if (expiryDate < today) {
-    return "Срок годности истек";
-  } else if (isExpiringSoon(dateString)) {
-    return "Истекает в течение месяца";
-  }
-  return null;
-}
+//   if (expiryDate < today) {
+//     return "Срок годности истек";
+//   } else if (isExpiringSoon(dateString)) {
+//     return "Истекает в течение месяца";
+//   }
+//   return null;
+// }
 
 // Enhanced search with debounce
 let searchTimeout = null;
