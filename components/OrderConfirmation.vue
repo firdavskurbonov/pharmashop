@@ -52,7 +52,8 @@ const formatCurrency = (amount: number) => {
     currencyDisplay: "name",
   })
     .format(amount)
-    .replace("Tajikistani somonis", "сомонӣ");
+    .replace("Tajikistani somonis", "сомонӣ")
+    .replace("сомонии Тоҷикистон", "сомонӣ");
 };
 
 // Estimated delivery date (5-7 business days from now)
@@ -313,19 +314,19 @@ onMounted(async () => {
             <!-- Order Summary -->
             <div class="order-totals">
               <div class="total-row">
-                <span>Промежуточный итог</span>
+                <span>Промежуточный итог: </span>
                 <span>{{ formatCurrency(orderDetails?.subtotal ?? 0) }}</span>
               </div>
               <div class="total-row">
-                <span>Доставка</span>
+                <span>Доставка: </span>
                 <span>{{ formatCurrency(orderDetails?.shipping ?? 0) }}</span>
               </div>
               <div class="total-row">
-                <span>НДС</span>
+                <span>НДС: </span>
                 <span>{{ formatCurrency(orderDetails?.tax ?? 0) }}</span>
               </div>
               <div class="total-row grand-total">
-                <span>Итого</span>
+                <span>Итого: </span>
                 <span>{{ formatCurrency(orderDetails?.total ?? 0) }}</span>
               </div>
             </div>
@@ -820,19 +821,19 @@ onMounted(async () => {
   }
 
   .price-col::before {
-    content: "Price: ";
+    content: "Цена: ";
     font-weight: 500;
     margin-right: 0.5rem;
   }
 
   .quantity-col::before {
-    content: "Quantity: ";
+    content: "Количество: ";
     font-weight: 500;
     margin-right: 0.5rem;
   }
 
   .total-col::before {
-    content: "Total: ";
+    content: "Итого: ";
     font-weight: 500;
     margin-right: 0.5rem;
   }
