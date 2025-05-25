@@ -620,6 +620,10 @@ onMounted(() => {
   max-width: 1000px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  position: sticky; /* Make the container sticky */
+  top: 0; /* Stick to the top of the viewport */
+  background-color: white; /* Optional: background color to ensure visibility */
+  z-index: 5; /* Lower z-index than checkout-progress */
 }
 
 .page-title {
@@ -632,7 +636,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 3rem;
-  position: relative;
+  /*position: relative;*/
+  position: sticky;
+  top: 0;
+  background-color: transparent;
+  z-index: 10;
 }
 
 .checkout-progress::before {

@@ -77,103 +77,6 @@
       </div>
     </div>
 
-    <!-- Filter and Sort Controls -->
-    <!-- <div class="mb-8 bg-white p-4 rounded-lg shadow">
-      <div
-        class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0"
-      >
-        <!-- Manufacturer Filter -->
-    <!-- <div class="w-full md:w-1/4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Производитель</label
-          >
-          <select
-            v-model="selectedManufacturer"
-            @change="filterByManufacturer"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Все производители</option>
-            <option
-              v-for="manufacturer in manufacturers"
-              :key="manufacturer"
-              :value="manufacturer"
-            >
-              {{ manufacturer }}
-            </option>
-          </select>
-        </div> -->
-
-    <!-- Price Range Filter -->
-    <!-- <div class="w-full md:w-2/5">
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Диапазон цен</label
-          >
-          <div class="flex items-center space-x-4">
-            <input
-              v-model.number="priceMin"
-              type="number"
-              placeholder="Минимальная цена"
-              class="w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              min="0"
-              step="0.01"
-              @change="filterByPrice"
-            />
-            <input
-              v-model.number="priceMax"
-              type="number"
-              placeholder="Максимальная цена"
-              class="w-1/2 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              min="0"
-              step="0.01"
-              @change="filterByPrice"
-            />
-          </div>
-        </div> -->
-
-    <!-- Sort Options -->
-    <!-- <div class="w-full md:w-1/4">
-          <label class="block text-sm font-medium text-gray-700 mb-1"
-            >Сортировать по</label
-          >
-          <select
-            v-model="sortOption"
-            @change="sortProducts"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="default">По умолчанию</option>
-            <option value="price-asc">
-              Цена: От минимальной к максимальной
-            </option>
-            <option value="price-desc">
-              Цена: От максимальной к минимальной
-            </option>
-            <option value="name-asc">Наименование: от А до Я</option>
-            <option value="name-desc">Наименование: от Я до A</option>
-            <option value="expiry-asc">Срок годности: Ранние cначала</option>
-            <option value="expiry-desc">
-              Срок годности: Последние cначала
-            </option>
-            <option value="quantity-asc">
-              Количество: От мин. к максимуму
-            </option>
-            <option value="quantity-desc">
-              Количество: От макс. к минимуму
-            </option>
-          </select>
-        </div>
-      </div> -->
-
-    <!-- Reset Filters Button -->
-    <!-- <div class="mt-4">
-        <button
-          @click="resetFilters"
-          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition"
-        >
-          Сбросить фильтры
-        </button>
-      </div>
-    </div>  -->
-
     <!-- Loading State -->
     <div v-if="loading" class="flex justify-center items-center h-64">
       <div class="text-center">
@@ -209,6 +112,7 @@
 
     <!-- Product Table -->
     <div v-else class="bg-white shadow-md rounded-lg overflow-hidden">
+      <!-- Mobile View -->
       <div class="block sm:hidden p-4">
         <h2 class="text-lg font-bold mb-4">Товары</h2>
         <div
@@ -231,29 +135,69 @@
           <div class="text-sm text-gray-500">
             Срок годности: {{ formatDate(product.ExpireDate) }}
           </div>
-          <div class="flex justify-end space-x-2 mt-2">
+
+          <!-- Mobile Actions -->
+          <div class="flex justify-between items-center mt-2">
             <button
               @click.stop="showProductInfo(product)"
               class="text-indigo-600 hover:text-indigo-900"
             >
               Подробнее
             </button>
-            <button
-              @click="addToCart(product)"
-              :disabled="product.Quantity === 0"
-              :class="[
-                'px-3 py-1 rounded-md text-sm',
-                product.Quantity > 0
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                  : 'bg-gray-300 cursor-not-allowed text-gray-500',
-              ]"
+
+            <!-- Toggle between Add button and quantity selector -->
+            <div v-if="!product.showQuantitySelector">
+              <button
+                @click="showQuantitySelector(product)"
+                :disabled="product.Quantity === 0"
+                :class="[
+                  'px-3 py-1 rounded-md text-sm',
+                  product.Quantity > 0
+                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    : 'bg-gray-300 cursor-not-allowed text-gray-500',
+                ]"
+              >
+                Добавить
+              </button>
+            </div>
+            <div
+              v-else
+              class="flex items-center border rounded-md overflow-hidden"
             >
-              Добавить
-            </button>
+              <button
+                @click="decrementQuantity(product)"
+                class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                :disabled="product.selectedQuantity <= 1"
+              >
+                <span class="font-bold">−</span>
+              </button>
+              <input
+                type="number"
+                v-model.number="product.selectedQuantity"
+                @keyup.enter="addToCartWithQuantity(product)"
+                class="w-12 text-center border-none focus:outline-none py-1"
+                min="1"
+                :max="product.Quantity"
+              />
+              <button
+                @click="incrementQuantity(product)"
+                class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                :disabled="product.selectedQuantity >= product.Quantity"
+              >
+                <span class="font-bold">+</span>
+              </button>
+              <button
+                @click="addToCartWithQuantity(product)"
+                class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- Desktop View (Table) -->
       <table class="min-w-full hidden sm:table divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
@@ -336,18 +280,55 @@
                 >
                   Подробнее
                 </button>
-                <button
-                  @click="addToCart(product)"
-                  :disabled="product.Quantity === 0"
-                  :class="[
-                    'px-3 py-1 rounded-md text-sm',
-                    product.Quantity > 0
-                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                      : 'bg-gray-300 cursor-not-allowed text-gray-500',
-                  ]"
+
+                <!-- Desktop View: Toggle between Add button and quantity selector -->
+                <div v-if="!product.showQuantitySelector">
+                  <button
+                    @click="showQuantitySelector(product)"
+                    :disabled="product.Quantity === 0"
+                    :class="[
+                      'px-3 py-1 rounded-md text-sm',
+                      product.Quantity > 0
+                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        : 'bg-gray-300 cursor-not-allowed text-gray-500',
+                    ]"
+                  >
+                    Добавить
+                  </button>
+                </div>
+                <div
+                  v-else
+                  class="flex items-center border rounded-md overflow-hidden"
                 >
-                  Добавить
-                </button>
+                  <button
+                    @click="decrementQuantity(product)"
+                    class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    :disabled="product.selectedQuantity <= 1"
+                  >
+                    <span class="font-bold">−</span>
+                  </button>
+                  <input
+                    type="number"
+                    v-model.number="product.selectedQuantity"
+                    @keyup.enter="addToCartWithQuantity(product)"
+                    class="w-12 text-center border-none focus:outline-none py-1"
+                    min="1"
+                    :max="product.Quantity"
+                  />
+                  <button
+                    @click="incrementQuantity(product)"
+                    class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    :disabled="product.selectedQuantity >= product.Quantity"
+                  >
+                    <span class="font-bold">+</span>
+                  </button>
+                  <button
+                    @click="addToCartWithQuantity(product)"
+                    class="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  >
+                    OK
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
@@ -442,7 +423,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+// Replace your existing script section with this corrected version
+
+import { ref, computed, onMounted, onUnmounted, watch, reactive } from "vue";
 import { useProductStore } from "~/stores/productStore";
 import { useCartStore } from "~/stores/cartStore";
 import ShoppingCart from "~/components/ShoppingCart.vue";
@@ -468,6 +451,9 @@ const isProductInfoVisible = ref(false);
 const selectedProduct = ref(null);
 const activeQuantityPopover = ref(null);
 
+// Product UI state - using reactive object to track product states
+const productStates = reactive({});
+
 // Fetch products on mount
 onMounted(async () => {
   await fetchProducts();
@@ -476,7 +462,18 @@ onMounted(async () => {
 // Computed properties
 const loading = computed(() => productStore.loading);
 const error = computed(() => productStore.error);
-const filteredProducts = computed(() => productStore.filteredProducts);
+
+// Enhanced filteredProducts with reactive state
+const filteredProducts = computed(() => {
+  const products = productStore.filteredProducts || [];
+  return products.map((product) => ({
+    ...product,
+    showQuantitySelector:
+      productStates[product.Id]?.showQuantitySelector || false,
+    selectedQuantity: productStates[product.Id]?.selectedQuantity || 1,
+  }));
+});
+
 const manufacturers = computed(() => productStore.manufacturers);
 
 // Calculate pagination info
@@ -561,20 +558,11 @@ function goToPreviousPage() {
 function handleSearch() {
   // Reset to page 1 when search changes
   currentPage.value = 1;
-  fetchProducts();
   productStore.setSearchQuery(searchQuery.value);
-}
-
-function filterByManufacturer() {
-  productStore.setManufacturer(selectedManufacturer.value);
-}
-
-function filterByPrice() {
-  productStore.setPriceRange(priceMin.value, priceMax.value);
-}
-
-function sortProducts() {
-  productStore.setSortBy(sortOption.value);
+  // Add a delay of 500 ms before fetching products
+  setTimeout(() => {
+    fetchProducts();
+  }, 500);
 }
 
 function resetFilters() {
@@ -613,9 +601,62 @@ function closeCart() {
   isCartOpen.value = false;
 }
 
-function addToCart(product) {
+function addToCart(product, quantity = 1) {
   // Call addItem with the product object and the desired quantity
-  cartStore.addItem(product, 1); // or any other quantity you want to add
+  cartStore.addItem(product, quantity);
+}
+
+// FIXED: Proper Vue 3 reactive state management
+function showQuantitySelector(product) {
+  // Initialize product state if it doesn't exist
+  if (!productStates[product.Id]) {
+    productStates[product.Id] = {};
+  }
+
+  // Set default selected quantity to 1
+  productStates[product.Id].selectedQuantity = 1;
+
+  // Show the quantity selector
+  productStates[product.Id].showQuantitySelector = true;
+}
+
+// FIXED: Added missing increment/decrement methods
+function incrementQuantity(product) {
+  if (!productStates[product.Id]) {
+    productStates[product.Id] = { selectedQuantity: 1 };
+  }
+
+  const currentQuantity = productStates[product.Id].selectedQuantity || 1;
+  if (currentQuantity < product.Quantity) {
+    productStates[product.Id].selectedQuantity = currentQuantity + 1;
+  }
+}
+
+function decrementQuantity(product) {
+  if (!productStates[product.Id]) {
+    productStates[product.Id] = { selectedQuantity: 1 };
+  }
+
+  const currentQuantity = productStates[product.Id].selectedQuantity || 1;
+  if (currentQuantity > 1) {
+    productStates[product.Id].selectedQuantity = currentQuantity - 1;
+  }
+}
+
+function addToCartWithQuantity(product) {
+  // Get the selected quantity from product state
+  const quantity = productStates[product.Id]?.selectedQuantity || 1;
+  const validQuantity = Math.min(Math.max(1, quantity), product.Quantity);
+
+  // Add to cart with the specified quantity
+  cartStore.addItem(product, validQuantity);
+
+  // Hide the quantity selector after adding to cart
+  if (productStates[product.Id]) {
+    productStates[product.Id].showQuantitySelector = false;
+  }
+
+  console.log(`Added ${validQuantity} of ${product.ProductName} to cart`);
 }
 
 function isInCart(productId) {
@@ -791,28 +832,30 @@ watch(
 
 // Update URL when filters change for shareable links
 watch([searchQuery, selectedManufacturer, currentPage], () => {
-  const url = new URL(window.location);
+  if (typeof window !== "undefined") {
+    const url = new URL(window.location);
 
-  if (searchQuery.value) {
-    url.searchParams.set("search", searchQuery.value);
-  } else {
-    url.searchParams.delete("search");
+    if (searchQuery.value) {
+      url.searchParams.set("search", searchQuery.value);
+    } else {
+      url.searchParams.delete("search");
+    }
+
+    if (selectedManufacturer.value) {
+      url.searchParams.set("manufacturer", selectedManufacturer.value);
+    } else {
+      url.searchParams.delete("manufacturer");
+    }
+
+    if (currentPage.value > 1) {
+      url.searchParams.set("page", currentPage.value);
+    } else {
+      url.searchParams.delete("page");
+    }
+
+    // Update URL without refreshing the page
+    window.history.replaceState({}, "", url);
   }
-
-  if (selectedManufacturer.value) {
-    url.searchParams.set("manufacturer", selectedManufacturer.value);
-  } else {
-    url.searchParams.delete("manufacturer");
-  }
-
-  if (currentPage.value > 1) {
-    url.searchParams.set("page", currentPage.value);
-  } else {
-    url.searchParams.delete("page");
-  }
-
-  // Update URL without refreshing the page
-  window.history.replaceState({}, "", url);
 });
 
 // Add global click handler for popovers and other event listeners
@@ -822,17 +865,19 @@ onMounted(() => {
   document.addEventListener("keydown", handleTabKey);
 
   // Initialize with URL params if they exist
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has("search")) {
-    searchQuery.value = urlParams.get("search");
-  }
-  if (urlParams.has("manufacturer")) {
-    selectedManufacturer.value = urlParams.get("manufacturer");
-  }
-  if (urlParams.has("page")) {
-    const page = parseInt(urlParams.get("page"));
-    if (!isNaN(page) && page > 0) {
-      currentPage.value = page;
+  if (typeof window !== "undefined") {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has("search")) {
+      searchQuery.value = urlParams.get("search");
+    }
+    if (urlParams.has("manufacturer")) {
+      selectedManufacturer.value = urlParams.get("manufacturer");
+    }
+    if (urlParams.has("page")) {
+      const page = parseInt(urlParams.get("page"));
+      if (!isNaN(page) && page > 0) {
+        currentPage.value = page;
+      }
     }
   }
 
@@ -856,43 +901,6 @@ defineExpose({
   formatDate,
 });
 </script>
-
-<!-- <style>
-@media (max-width: 768px) {
-  .cart-button-container {
-    bottom: 10px;
-    right: 10px;
-  }
-
-  .cart-button {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-  }
-}
-.cart-button-container {
-  position: fixed;
-  top: 10px; /* Distance from the bottom of the screen */
-  right: 20px; /* Distance from the right of the screen */
-  z-index: 50; /* Ensure it stays above other elements */
-}
-
-.cart-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.cart-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-}
-</style> -->
 
 <style>
 @media (max-width: 768px) {
